@@ -11,6 +11,6 @@ namespace EFakturyService.Services
     {
         Task<List<InvoiceDto>> GetInvoices();
 
-        Task UpdateAttributes(int gidType, int gidNumber, DateTime? date = null, string path = null);
+        Task UpdateAttributes(int gidType, int gidNumber, string path = null);
     }
 }

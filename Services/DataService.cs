@@ -23,7 +23,7 @@ namespace EFakturyService.Services
             }
         }
 
-        public async Task UpdateAttributes(int gidType, int gidNumber, DateTime? date = null, string path = null)
+        public async Task UpdateAttributes(int gidType, int gidNumber, string path = null)
         {
             using (var context = new AppDbContext())
             {
@@ -31,11 +31,10 @@ namespace EFakturyService.Services
                 {
                     new SqlParameter("@GidType", gidNumber),
                     new SqlParameter("@GidNumber", gidNumber),
-                    new SqlParameter("@Date", date.HasValue ? (object)date.Value : DBNull.Value),
                     new SqlParameter("@Path", string.IsNullOrWhiteSpace(path) ? DBNull.Value : (object)path)
                 };
 
-                await context.Database.ExecuteSqlCommandAsync("EXEC CDN.Gaska_UpdateAtrybutyEFaktura @GidType, @GidNumber, @Date, @Path", parameters);
+                await context.Database.ExecuteSqlCommandAsync("EXEC CDN.Gaska_UpdateAtrybutyEFaktura @GidType, @GidNumber, @Path", parameters);
             }
         }
     }
