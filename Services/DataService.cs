@@ -29,7 +29,7 @@ namespace EFakturyService.Services
             {
                 var parameters = new[]
                 {
-                    new SqlParameter("@GidType", gidNumber),
+                    new SqlParameter("@GidType", gidType),
                     new SqlParameter("@GidNumber", gidNumber),
                     new SqlParameter("@Path", string.IsNullOrWhiteSpace(path) ? DBNull.Value : (object)path)
                 };

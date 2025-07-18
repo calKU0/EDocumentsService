@@ -120,7 +120,7 @@ namespace EFakturyService
                             _emailSenderService.SendInvoiceEmail(invoice, pdfPath);
 
                             // 4. Aktualizuję atrybuty na fakturze
-                            await _dataService.UpdateAttributes(invoice.GidType, invoice.GidNumber, pdfPath);
+                            await _dataService.UpdateAttributes(invoice.GidType, invoice.GidNumber, _appSettings.BackupPath);
 
                             // 5. Generuję oświadczenie wywozowe z poprzedniego miesiąca dla kontrahenta gdy musze
                             if (invoice.ExportDeclaration)
