@@ -226,4 +226,5 @@ AppPackages/
 #####
 
 # Project
-App.config
+appsettings.json
+appsettings.development.json
