@@ -12,7 +12,6 @@ namespace EDocuments.Infrastructure.Services
         }
         public void BackupFiles(string sourceFolder, string destinationFolder)
         {
-
             if (Directory.Exists(sourceFolder))
             {
                 Directory.CreateDirectory(destinationFolder);
@@ -36,6 +35,30 @@ namespace EDocuments.Infrastructure.Services
                     {
                         _logger.LogError(ex, $"Error backing up file: {file}");
                     }
+                }
+            }
+        }
+
+        public void DeleteFilesFromFolder(string folder, string? extension = null)
+        {
+            if (!Directory.Exists(folder))
+            {
+                _logger.LogError($"Can't deletes file from {folder}. Folder does not exist");
+                return;
+            }
+
+            string[] files = Directory.GetFiles(folder);
+            string[] filesWithExtension = string.IsNullOrEmpty(extension) ? files : files.Where(f => Path.GetExtension(f) == extension).ToArray();
+
+            foreach (string file in filesWithExtension)
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error deleting file: {file}");
                 }
             }
         }

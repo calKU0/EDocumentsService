@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EInvoice.Service", "EInvoic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EExportDeclaration.Service", "EExportDeclaration.Service\EExportDeclaration.Service.csproj", "{B3FB146F-DB8E-4AC2-B6E8-3F3B1A72D944}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EWZ.Service", "EWZ.Service\EWZ.Service.csproj", "{5696B235-DEE1-4FF2-B388-92142AECA3B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{B3FB146F-DB8E-4AC2-B6E8-3F3B1A72D944}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3FB146F-DB8E-4AC2-B6E8-3F3B1A72D944}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3FB146F-DB8E-4AC2-B6E8-3F3B1A72D944}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

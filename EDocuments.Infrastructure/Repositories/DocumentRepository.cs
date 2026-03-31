@@ -16,7 +16,7 @@ namespace EDocuments.Infrastructure.Repositories
 
         public async Task<List<ExportDeclaration>> GetExportDeclarations()
         {
-            const string procedure = "dbo.GaskaZaczytajDeklaracjeEksportowe";
+            const string procedure = "dbo.GaskaGetEExportDeclarations";
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -27,7 +27,7 @@ namespace EDocuments.Infrastructure.Repositories
 
         public async Task<List<Invoice>> GetInvoices()
         {
-            const string procedure = "dbo.GaskaZaczytajFakturyNowe";
+            const string procedure = "dbo.GaskaGetEInvoices";
             using (var connection = _context.CreateConnection())
             {
                 connection.Open();
@@ -36,9 +36,15 @@ namespace EDocuments.Infrastructure.Repositories
             }
         }
 
-        public Task<List<WZDocument>> GetWZDocuments()
+        public async Task<List<WZDocument>> GetWZDocuments()
         {
-            throw new NotImplementedException();
+            const string procedure = "dbo.GaskaGetEWZ";
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var wzList = await connection.QueryAsync<WZDocument>(procedure, commandType: CommandType.StoredProcedure);
+                return wzList.ToList();
+            }
         }
     }
 }
