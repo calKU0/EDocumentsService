@@ -2,6 +2,7 @@
 using EDocuments.Contracts.Repositories;
 using EDocuments.Contracts.Services;
 using EDocuments.Contracts.Settings;
+using EDocuments.Infrastructure.Helpers;
 using EInvoice.Service.Helpers;
 using EInvoice.Service.Settings;
 using Microsoft.Extensions.Options;
@@ -40,7 +41,7 @@ namespace EInvoice.Service.Services
                 var clientInvoices = new Dictionary<string, List<(Invoice invoice, string pdfPath)>>();
                 _xlApiService.Login();
 
-                foreach (var invoice in invoices)
+                foreach (var invoice in invoices.DistinctBy(i => i.Name))
                 {
                     if (ct.IsCancellationRequested)
                     {
@@ -48,7 +49,7 @@ namespace EInvoice.Service.Services
                         break;
                     }
 
-                    var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == invoice.Country && s.Stapled == (invoice.Country =="PL" ? invoice.IsStapled : false));
+                    var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == invoice.Country && s.Stapled == (invoice.Country == "PL" ? invoice.IsStapled : false));
                     if (printSettings == null)
                     {
                         printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == "EN");
@@ -68,6 +69,8 @@ namespace EInvoice.Service.Services
                         _logger.LogError("Failed to generate PDF for document: {Document}. Expected file not found at path: {PdfPath}", invoice.Name, pdfPath);
                         continue;
                     }
+
+                    _logger.LogInformation("Generated PDF for document: {Document} at path: {PdfPath}", invoice.Name, pdfPath);
 
                     var clientEmail = invoice.Email?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                         .Select(e => e.Trim())
@@ -98,7 +101,7 @@ namespace EInvoice.Service.Services
                         .Where(e => !string.IsNullOrWhiteSpace(e))
                         .ToList();
 
-                    string body = EmailHelpers.BuildEInvoiceBodyForGroup(invoiceGroup.Select(i => i.invoice).ToList());
+                    string body = InvoiceEmailBuilder.BuildEInvoiceBodyForGroup(invoiceGroup.Select(i => i.invoice).ToList());
                     string subject = invoice.Country == "PL" ? "E-faktura Gąska" : "E-Invoice Gaska";
                     try
                     {
@@ -106,9 +109,9 @@ namespace EInvoice.Service.Services
                         _logger.LogInformation("Successfully generated and sent e-invoice(s) for client: {ClientEmail} with {Count} attachments.", clientEmail, attachments.Count);
                         foreach (var inv in invoiceGroup)
                         {
-                            //await _attributeRepo.UpdateAttribute("Mail e-faktura", inv.invoice.Id, inv.invoice.Type, 0, DateTime.Now.ToString());
-                            //await _attributeRepo.UpdateAttribute("Link e-faktura", inv.invoice.Id, inv.invoice.Type, 0, inv.pdfPath);
-                            //await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", inv.invoice.Id, inv.invoice.Type, 0, "NIE");
+                            await _attributeRepo.UpdateAttribute("Mail e-faktura", inv.invoice.Id, inv.invoice.Type, 0, DateTime.Now.ToString());
+                            await _attributeRepo.UpdateAttribute("Link e-faktura", inv.invoice.Id, inv.invoice.Type, 0, inv.pdfPath);
+                            await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", inv.invoice.Id, inv.invoice.Type, 0, "NIE");
                         }
                     }
                     catch (SmtpException smtpEx) when (smtpEx.Message.Contains("Osiagnieto limit"))
@@ -129,11 +132,8 @@ namespace EInvoice.Service.Services
                         }
 
                         _logger.LogError(ex, "Invalid email format for client: {ClientEmail}. Sending email to representative {Representative}.", clientEmail, invoice.RepresentativeEmail);
-                        subject = $"Błędny adres e-mail - Faktura {invoice.Name}";
-                        body = $"Dla dokumentu numer: {invoice.Name}, nie została wysłana faktura, " +
-                            $"ponieważ podano nieprawidłowy adres e-mail:<br/><br/>" +
-                            $"{string.Join("<br/>", to)}" +
-                            $"<br/><br/>Pozdrawiamy<br/>Dział IT";
+                        subject = $"Błędny adres e-mail - {invoice.Name}";
+                        body = ErrorEmailBuilder.BuildErrorBodyForRepresentative(invoice.Name, to);
                         to = new List<string> { invoice.RepresentativeEmail };
 
                         _emailService.Send(body, subject, to, null);

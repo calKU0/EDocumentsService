@@ -1,4 +1,5 @@
 using EDocuments.Contracts.Services;
+using EExportDeclaration.Service.Constants;
 using EExportDeclaration.Service.Services;
 using EExportDeclaration.Service.Settings;
 using Microsoft.Extensions.Options;
@@ -45,8 +46,13 @@ namespace EExportDeclaration.Service
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var printingService = scope.ServiceProvider.GetRequiredService<EExportDeclarationService>();
+                    var fileService = scope.ServiceProvider.GetRequiredService<IFileService>();
 
                     await printingService.GenerateAndSendExportDeclarations(stoppingToken);
+
+                    string declarationsPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder);
+                    fileService.DeleteFilesFromFolder(declarationsPath, ".pdf");
+                    _logger.LogInformation("Files deleted from {Path}", declarationsPath);
 
                     _logger.LogInformation("Daily job executed at: {Time}", DateTime.Now);
                 }

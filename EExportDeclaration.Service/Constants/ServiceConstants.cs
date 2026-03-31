@@ -3,5 +3,6 @@
     public class ServiceConstants
     {
         public const string ServiceName = "GaskaEDeklaracjaEkportowaService";
+        public const string ExportDeclarationFolder = "ExportDeclarations";
     }
 }

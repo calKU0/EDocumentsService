@@ -1,8 +1,9 @@
-﻿using EDocuments.Contracts.Repositories;
+﻿using EDocuments.Contracts.Models;
+using EDocuments.Contracts.Repositories;
 using EDocuments.Contracts.Services;
 using EDocuments.Contracts.Settings;
+using EExportDeclaration.Service.Constants;
 using EExportDeclaration.Service.Helpers;
-using EExportDeclaration.Service.Settings;
 using Microsoft.Extensions.Options;
 using Serilog;
 using System.Net.Mail;
@@ -15,14 +16,12 @@ namespace EExportDeclaration.Service.Services
         private readonly IXlApiService _xlApiService;
         private readonly IEmailService _emailService;
         private readonly ILogger<EExportDeclarationService> _logger;
-        private readonly AppSettings _appSettings;
         private readonly List<XlPrintSettings> _xlPrintSettings;
-        public EExportDeclarationService(IDocumentRepository documentRepo, IXlApiService xlApiService, ILogger<EExportDeclarationService> logger, IOptions<AppSettings> appSettings, IOptions<List<XlPrintSettings>> xlPrintSettings, IEmailService emailService)
+        public EExportDeclarationService(IDocumentRepository documentRepo, IXlApiService xlApiService, ILogger<EExportDeclarationService> logger, IOptions<List<XlPrintSettings>> xlPrintSettings, IEmailService emailService)
         {
             _documentRepo = documentRepo;
             _xlApiService = xlApiService;
             _logger = logger;
-            _appSettings = appSettings.Value;
             _xlPrintSettings = xlPrintSettings.Value;
             _emailService = emailService;
         }
@@ -55,7 +54,7 @@ namespace EExportDeclaration.Service.Services
                     }
 
                     var filtrSql = $"(Knt_GIDTyp={declaration.ClientType} AND Knt_GIDFirma=449892 AND Knt_GIDNumer={declaration.ClientId})";
-                    string pdfPath = Path.Combine(_appSettings.DeclarationsPath, declaration.FileName);
+                    string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder, declaration.FileName);
 
                     _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
 
@@ -64,13 +63,14 @@ namespace EExportDeclaration.Service.Services
                         _logger.LogError("Failed to generate PDF for export declaration for client: {Client}. Expected file not found at path: {PdfPath}", declaration.ClientName, pdfPath);
                         continue;
                     }
+                    _logger.LogInformation("Generated PDF at path: {PdfPath}", pdfPath);
 
                     List<string> to = declaration.Email.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                         .Select(e => e.Trim())
                         .Where(e => !string.IsNullOrWhiteSpace(e))
                         .ToList();
 
-                    string body = EmailHelpers.BuildExportDeclarationBody(declaration.ClientCountry);
+                    string body = ExportDeclarationEmailBuilder.BuildExportDeclarationBody(declaration.ClientCountry);
                     string subject = declaration.ClientCountry == "PL"
                         ? "Potwierdzenie dostawy towaru z terytorium Polski"
                         : "Confirmation of delivery the goods from the territory of Poland";

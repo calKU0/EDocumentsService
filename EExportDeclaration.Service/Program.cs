@@ -54,6 +54,7 @@ var host = Host.CreateDefaultBuilder(args)
         // Services
         services.AddScoped<IXlApiService, XlApiService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IFileService, FileService>();
         services.AddScoped<EExportDeclarationService>();
 
         // Background worker

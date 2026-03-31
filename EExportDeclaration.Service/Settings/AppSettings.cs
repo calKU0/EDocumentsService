@@ -5,6 +5,5 @@
         public int GeneratingDay { get; set; }
         public int WorkerIntervalMinutes { get; set; }
         public int LogsExpirationDays { get; set; }
-        public string DeclarationsPath { get; set; }
     }
 }
