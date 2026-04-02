@@ -54,6 +54,7 @@ namespace EWZ.Service
                     fileService.DeleteFilesFromFolder(wzPath, ".pdf");
                     _logger.LogInformation("Files deleted from {Path}", wzPath);
 
+                    _lastRun = DateTime.Now;
                     _logger.LogInformation("Daily job executed at: {Time}", DateTime.Now);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

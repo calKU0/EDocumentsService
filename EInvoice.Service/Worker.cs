@@ -51,6 +51,7 @@ namespace EInvoice.Service
                     fileService.BackupFiles(_appSettings.InvoicesPath, _appSettings.BackupPath);
                     _logger.LogInformation("Files backed up from {Source} to {Destination}", _appSettings.InvoicesPath, _appSettings.BackupPath);
 
+                    _lastRun = DateTime.Now;
                     _logger.LogInformation("Daily job executed at: {Time}", DateTime.Now);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -67,6 +68,6 @@ namespace EInvoice.Service
                 }
             }
         }
-    
+
     }
 }

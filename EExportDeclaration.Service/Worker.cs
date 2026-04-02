@@ -54,6 +54,7 @@ namespace EExportDeclaration.Service
                     fileService.DeleteFilesFromFolder(declarationsPath, ".pdf");
                     _logger.LogInformation("Files deleted from {Path}", declarationsPath);
 
+                    _lastRun = DateTime.Now;
                     _logger.LogInformation("Daily job executed at: {Time}", DateTime.Now);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
