@@ -39,6 +39,9 @@ namespace EInvoice.Service.Services
                 var invoices = await _documentRepo.GetInvoices();
                 _logger.LogInformation("Retrieved {Count} invoices to process.", invoices.Count);
 
+                if (invoices.Count == 0)
+                    return;
+
                 var clientInvoices = new Dictionary<string, List<(Invoice invoice, string pdfPath)>>();
                 xlSessionId = _xlApiService.Login();
 

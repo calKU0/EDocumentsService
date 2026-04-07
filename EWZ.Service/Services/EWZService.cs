@@ -37,6 +37,9 @@ namespace EWZ.Service.Services
                 var wzList = await _documentRepo.GetWZDocuments();
                 _logger.LogInformation("Retrieved {Count} WZ to process.", wzList.Count);
 
+                if (wzList.Count == 0)
+                    return;
+
                 var clientInvoices = new Dictionary<string, List<(WZDocument wzDocument, string pdfPath)>>();
                 xlSessionId = _xlApiService.Login();
 

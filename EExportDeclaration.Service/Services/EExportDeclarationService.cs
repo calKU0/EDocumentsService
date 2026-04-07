@@ -33,6 +33,9 @@ namespace EExportDeclaration.Service.Services
                 var declarations = await _documentRepo.GetExportDeclarations();
                 _logger.LogInformation("Retrieved {Count} export declarations to process.", declarations.Count);
 
+                if (declarations.Count == 0)
+                    return;
+
                 xlSessionId = _xlApiService.Login();
 
                 foreach (var declaration in declarations)
