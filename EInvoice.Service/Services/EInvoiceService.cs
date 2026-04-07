@@ -33,13 +33,14 @@ namespace EInvoice.Service.Services
 
         public async Task GenerateAndSendEInvoices(CancellationToken ct)
         {
+            int xlSessionId = 0;
             try
             {
                 var invoices = await _documentRepo.GetInvoices();
                 _logger.LogInformation("Retrieved {Count} invoices to process.", invoices.Count);
 
                 var clientInvoices = new Dictionary<string, List<(Invoice invoice, string pdfPath)>>();
-                _xlApiService.Login();
+                xlSessionId = _xlApiService.Login();
 
                 foreach (var invoice in invoices.DistinctBy(i => i.Name))
                 {
@@ -148,9 +149,13 @@ namespace EInvoice.Service.Services
             {
                 try
                 {
-                    _xlApiService.Logout();
+                    if (xlSessionId != 0)
+                        _xlApiService.Logout(xlSessionId);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error logging out of XL API.");
+                }
             }
         }
     }

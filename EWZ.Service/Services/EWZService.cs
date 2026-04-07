@@ -31,13 +31,14 @@ namespace EWZ.Service.Services
 
         public async Task GenerateAndSendEWZs(CancellationToken ct)
         {
+            int xlSessionId = 0;
             try
             {
                 var wzList = await _documentRepo.GetWZDocuments();
                 _logger.LogInformation("Retrieved {Count} WZ to process.", wzList.Count);
 
                 var clientInvoices = new Dictionary<string, List<(WZDocument wzDocument, string pdfPath)>>();
-                _xlApiService.Login();
+                xlSessionId = _xlApiService.Login();
 
                 foreach (var wz in wzList.DistinctBy(i => i.Name))
                 {
@@ -145,9 +146,13 @@ namespace EWZ.Service.Services
             {
                 try
                 {
-                    _xlApiService.Logout();
+                    if (xlSessionId != 0)
+                        _xlApiService.Logout(xlSessionId);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error logging out of XL API.");
+                }
             }
         }
     }

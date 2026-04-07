@@ -4,9 +4,9 @@ namespace EDocuments.Contracts.Services
 {
     public interface IXlApiService
     {
-        public void Login();
+        public int Login();
 
-        public void Logout();
+        public void Logout(int sessionId);
 
         public void GeneratePrint(XlPrintSettings printSettings, string path, string? filtrSql);
     }

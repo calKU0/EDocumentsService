@@ -12,14 +12,15 @@ namespace EDocuments.Infrastructure.Services
         public static extern void AttachThreadToClarion(int _flag);
 
         private readonly XlApiSettings _xlSettings;
-        private int _sessionId;
         public XlApiService(IOptions<XlApiSettings> xlSettings)
         {
             _xlSettings = xlSettings.Value;
         }
 
-        public void Login()
+        public int Login()
         {
+            int sessionId = 0;
+            AttachThreadToClarion(1);
             XLLoginInfo_20251 xLLoginInfo = new XLLoginInfo_20251
             {
                 Wersja = _xlSettings.ApiVersion,
@@ -30,14 +31,14 @@ namespace EDocuments.Infrastructure.Services
                 TrybWsadowy = 1
             };
 
-            int result = cdn_api.cdn_api.XLLogin(xLLoginInfo, ref _sessionId);
+            int result = cdn_api.cdn_api.XLLogin(xLLoginInfo, ref sessionId);
             if (result != 0)
-            {
                 throw new InvalidOperationException($"Error while loggin in. Error code: {result}");
-            }
+
+            return sessionId;
         }
 
-        public void Logout()
+        public void Logout(int sessionId)
         {
             AttachThreadToClarion(1);
             XLLogoutInfo_20251 xLLogoutInfo = new XLLogoutInfo_20251
@@ -45,11 +46,9 @@ namespace EDocuments.Infrastructure.Services
                 Wersja = _xlSettings.ApiVersion,
             };
 
-            int result = cdn_api.cdn_api.XLLogout(_sessionId);
+            int result = cdn_api.cdn_api.XLLogout(sessionId);
             if (result != 0)
-            {
                 throw new InvalidOperationException($"Error while loggin out. Error code: {result}");
-            }
         }
 
         public void GeneratePrint(XlPrintSettings printSetting, string path, string? filtrSql)
