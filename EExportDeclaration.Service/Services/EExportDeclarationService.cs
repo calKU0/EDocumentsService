@@ -27,7 +27,6 @@ namespace EExportDeclaration.Service.Services
 
         public async Task GenerateAndSendExportDeclarations(CancellationToken ct)
         {
-            int xlSessionId = 0;
             try
             {
                 var declarations = await _documentRepo.GetExportDeclarations();
@@ -35,8 +34,6 @@ namespace EExportDeclaration.Service.Services
 
                 if (declarations.Count == 0)
                     return;
-
-                xlSessionId = _xlApiService.Login();
 
                 foreach (var declaration in declarations)
                 {
@@ -98,18 +95,6 @@ namespace EExportDeclaration.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while generating and sending e-export declarations.");
-            }
-            finally
-            {
-                try
-                {
-                    if (xlSessionId != 0)
-                        _xlApiService.Logout(xlSessionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error logging out of XL API.");
-                }
             }
         }
     }

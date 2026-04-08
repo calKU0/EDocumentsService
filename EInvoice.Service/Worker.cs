@@ -11,15 +11,31 @@ namespace EInvoice.Service
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly AppSettings _appSettings;
         private DateTime _lastRun = DateTime.MinValue;
+        private int _xlSessionId;
 
-        public Worker(
-            ILogger<Worker> logger,
-            IServiceScopeFactory scopeFactory,
-            IOptions<AppSettings> appSettings)
+        public Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory, IOptions<AppSettings> appSettings)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _appSettings = appSettings.Value;
+        }
+
+        public override async Task StartAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var xlApiService = scope.ServiceProvider.GetRequiredService<IXlApiService>();
+                _xlSessionId = xlApiService.Login();
+                _logger.LogInformation("Logged in to XL API with session id: {SessionId}", _xlSessionId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to login to XL API during service startup.");
+                throw;
+            }
+
+            await base.StartAsync(cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,6 +83,27 @@ namespace EInvoice.Service
                     await Task.Delay(interval, stoppingToken);
                 }
             }
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_xlSessionId != 0)
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var xlApiService = scope.ServiceProvider.GetRequiredService<IXlApiService>();
+                    xlApiService.Logout(_xlSessionId);
+                    _logger.LogInformation("Logged out from XL API session id: {SessionId}", _xlSessionId);
+                    _xlSessionId = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to logout from XL API during service shutdown.");
+            }
+
+            await base.StopAsync(cancellationToken);
         }
 
     }

@@ -31,7 +31,6 @@ namespace EWZ.Service.Services
 
         public async Task GenerateAndSendEWZs(CancellationToken ct)
         {
-            int xlSessionId = 0;
             try
             {
                 var wzList = await _documentRepo.GetWZDocuments();
@@ -41,7 +40,6 @@ namespace EWZ.Service.Services
                     return;
 
                 var clientInvoices = new Dictionary<string, List<(WZDocument wzDocument, string pdfPath)>>();
-                xlSessionId = _xlApiService.Login();
 
                 foreach (var wz in wzList.DistinctBy(i => i.Name))
                 {
@@ -109,11 +107,18 @@ namespace EWZ.Service.Services
                     {
                         _emailService.Send(body, subject, to, attachments);
                         _logger.LogInformation("Successfully generated and sent e-WZ(s) for client: {ClientEmail} with {Count} attachments.", clientEmail, attachments.Count);
-                        foreach (var wz in wzGroup)
+                        try
                         {
-                            await _attributeRepo.UpdateAttribute("Mail e-faktura", wz.wzDocument.Id, wz.wzDocument.Type, 0, DateTime.Now.ToString());
-                            await _attributeRepo.UpdateAttribute("Link e-faktura", wz.wzDocument.Id, wz.wzDocument.Type, 0, wz.pdfPath);
-                            await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", wz.wzDocument.Id, wz.wzDocument.Type, 0, "NIE");
+                            foreach (var wz in wzGroup)
+                            {
+                                await _attributeRepo.UpdateAttribute("Mail e-faktura", wz.wzDocument.Id, wz.wzDocument.Type, 0, DateTime.Now.ToString());
+                                await _attributeRepo.UpdateAttribute("Link e-faktura", wz.wzDocument.Id, wz.wzDocument.Type, 0, wz.pdfPath);
+                                await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", wz.wzDocument.Id, wz.wzDocument.Type, 0, "NIE");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to update attributes for invoice(s) of client: {ClientEmail}.", clientEmail);
                         }
                     }
                     catch (SmtpException smtpEx) when (smtpEx.Message.Contains("Osiagnieto limit"))
@@ -124,6 +129,21 @@ namespace EWZ.Service.Services
 
                         await Task.Delay(delay + TimeSpan.FromMinutes(5));
                         _emailService.Send(body, subject, to, attachments);
+                    }
+                    catch (SmtpException smtpEx) when (smtpEx.Message.Contains("ASCII local-parts"))
+                    {
+                        if (string.IsNullOrEmpty(wzDocument.RepresentativeEmail))
+                        {
+                            _logger.LogError(smtpEx, "Invalid email format for client: {ClientEmail}. No representative email provided. Skipping email sending for invoice {InvoiceName}.", clientEmail, wzDocument.Name);
+                            continue;
+                        }
+
+                        _logger.LogError(smtpEx, "Invalid email format for client: {ClientEmail}. Sending email to representative {Representative}.", clientEmail, wzDocument.RepresentativeEmail);
+                        subject = $"Błędny adres e-mail - {wzDocument.Name}";
+                        body = ErrorEmailBuilder.BuildErrorBodyForRepresentative(wzDocument.Name, to);
+                        to = new List<string> { wzDocument.RepresentativeEmail };
+
+                        _emailService.Send(body, subject, to, null);
                     }
                     catch (FormatException ex)
                     {
@@ -136,6 +156,7 @@ namespace EWZ.Service.Services
                         _logger.LogError(ex, "Invalid email format for client: {ClientEmail}. Sending email to representative {Representative}.", clientEmail, wzDocument.RepresentativeEmail);
                         subject = $"Błędny adres e-mail - {wzDocument.Name}";
                         body = ErrorEmailBuilder.BuildErrorBodyForRepresentative(wzDocument.Name, to);
+                        to = new List<string> { wzDocument.RepresentativeEmail };
 
                         _emailService.Send(body, subject, to, null);
                     }
@@ -144,18 +165,6 @@ namespace EWZ.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating and sending e-invoices.");
-            }
-            finally
-            {
-                try
-                {
-                    if (xlSessionId != 0)
-                        _xlApiService.Logout(xlSessionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error logging out of XL API.");
-                }
             }
         }
     }

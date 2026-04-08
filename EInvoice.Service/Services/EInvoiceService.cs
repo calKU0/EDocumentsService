@@ -33,7 +33,6 @@ namespace EInvoice.Service.Services
 
         public async Task GenerateAndSendEInvoices(CancellationToken ct)
         {
-            int xlSessionId = 0;
             try
             {
                 var invoices = await _documentRepo.GetInvoices();
@@ -43,7 +42,6 @@ namespace EInvoice.Service.Services
                     return;
 
                 var clientInvoices = new Dictionary<string, List<(Invoice invoice, string pdfPath)>>();
-                xlSessionId = _xlApiService.Login();
 
                 foreach (var invoice in invoices.DistinctBy(i => i.Name))
                 {
@@ -111,11 +109,19 @@ namespace EInvoice.Service.Services
                     {
                         _emailService.Send(body, subject, to, attachments);
                         _logger.LogInformation("Successfully generated and sent e-invoice(s) for client: {ClientEmail} with {Count} attachments.", clientEmail, attachments.Count);
-                        foreach (var inv in invoiceGroup)
+                        
+                        try
                         {
-                            await _attributeRepo.UpdateAttribute("Mail e-faktura", inv.invoice.Id, inv.invoice.Type, 0, DateTime.Now.ToString());
-                            await _attributeRepo.UpdateAttribute("Link e-faktura", inv.invoice.Id, inv.invoice.Type, 0, inv.pdfPath);
-                            await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", inv.invoice.Id, inv.invoice.Type, 0, "NIE");
+                            foreach (var inv in invoiceGroup)
+                            {
+                                await _attributeRepo.UpdateAttribute("Mail e-faktura", inv.invoice.Id, inv.invoice.Type, 0, DateTime.Now.ToString());
+                                await _attributeRepo.UpdateAttribute("Link e-faktura", inv.invoice.Id, inv.invoice.Type, 0, inv.pdfPath);
+                                await _attributeRepo.UpdateAttribute("Mail e-faktura wyślij ponownie", inv.invoice.Id, inv.invoice.Type, 0, "NIE");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to update attributes for invoice(s) of client: {ClientEmail}.", clientEmail);
                         }
                     }
                     catch (SmtpException smtpEx) when (smtpEx.Message.Contains("Osiagnieto limit"))
@@ -126,6 +132,21 @@ namespace EInvoice.Service.Services
 
                         await Task.Delay(delay + TimeSpan.FromMinutes(5));
                         _emailService.Send(body, subject, to, attachments);
+                    }
+                    catch (SmtpException smtpEx) when (smtpEx.Message.Contains("ASCII local-parts"))
+                    {
+                        if (string.IsNullOrEmpty(invoice.RepresentativeEmail))
+                        {
+                            _logger.LogError(smtpEx, "Invalid email format for client: {ClientEmail}. No representative email provided. Skipping email sending for invoice {InvoiceName}.", clientEmail, invoice.Name);
+                            continue;
+                        }
+
+                        _logger.LogError(smtpEx, "Invalid email format for client: {ClientEmail}. Sending email to representative {Representative}.", clientEmail, invoice.RepresentativeEmail);
+                        subject = $"Błędny adres e-mail - {invoice.Name}";
+                        body = ErrorEmailBuilder.BuildErrorBodyForRepresentative(invoice.Name, to);
+                        to = new List<string> { invoice.RepresentativeEmail };
+
+                        _emailService.Send(body, subject, to, null);
                     }
                     catch (FormatException ex)
                     {
@@ -147,18 +168,6 @@ namespace EInvoice.Service.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating and sending e-invoices.");
-            }
-            finally
-            {
-                try
-                {
-                    if (xlSessionId != 0)
-                        _xlApiService.Logout(xlSessionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error logging out of XL API.");
-                }
             }
         }
     }
