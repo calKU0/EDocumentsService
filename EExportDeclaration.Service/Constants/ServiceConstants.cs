@@ -2,7 +2,7 @@
 {
     public class ServiceConstants
     {
-        public const string ServiceName = "GaskaEDeklaracjaEkportowaService";
+        public const string ServiceName = "EDeklaracjeEksportowe";
         public const string ExportDeclarationFolder = "ExportDeclarations";
     }
 }

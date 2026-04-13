@@ -2,6 +2,6 @@
 {
     public class ServiceConstants
     {
-        public const string ServiceName = "GaskaEFakturyService";
+        public const string ServiceName = "EFaktury";
     }
 }
