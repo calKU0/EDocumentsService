@@ -43,49 +43,56 @@ namespace EWZ.Service.Services
 
                 foreach (var wz in wzList.DistinctBy(i => i.Name))
                 {
-                    if (ct.IsCancellationRequested)
+                    try
                     {
-                        _logger.LogInformation("Cancellation requested. Stopping e-WZ generation.");
-                        break;
-                    }
+                        if (ct.IsCancellationRequested)
+                        {
+                            _logger.LogInformation("Cancellation requested. Stopping e-WZ generation.");
+                            break;
+                        }
 
-                    var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == wz.Type && s.Language == wz.Country);
-                    if (printSettings == null)
-                    {
-                        printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == wz.Type && s.Language == "EN");
+                        var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == wz.Type && s.Language == wz.Country);
                         if (printSettings == null)
                         {
-                            throw new Exception($"No print settings found for DocumentType={wz.Type} and Language={wz.Country} or fallback 'EN'.");
+                            printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == wz.Type && s.Language == "EN");
+                            if (printSettings == null)
+                            {
+                                throw new Exception($"No print settings found for DocumentType={wz.Type} and Language={wz.Country} or fallback 'EN'.");
+                            }
                         }
+
+                        var filtrSql = $"(TrN_GIDTyp={wz.Type} AND TrN_GIDNumer={wz.Id})";
+                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.WZFolder, wz.FileName);
+
+                        _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
+
+                        if (!File.Exists(pdfPath))
+                        {
+                            _logger.LogError("Failed to generate PDF for document: {Document}. Expected file not found at path: {PdfPath}", wz.Name, pdfPath);
+                            continue;
+                        }
+
+                        _logger.LogInformation("Generated PDF for document: {Document} at path: {PdfPath}", wz.Name, pdfPath);
+
+                        var clientEmail = wz.Email?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(e => e.Trim())
+                            .FirstOrDefault();
+
+                        if (string.IsNullOrWhiteSpace(clientEmail))
+                        {
+                            _logger.LogError("WZ {Document} has no valid client email.", wz.Name);
+                            continue;
+                        }
+
+                        if (!clientInvoices.ContainsKey(clientEmail))
+                            clientInvoices[clientEmail] = new List<(WZDocument, string)>();
+
+                        clientInvoices[clientEmail].Add((wz, pdfPath));
                     }
-
-                    var filtrSql = $"(TrN_GIDTyp={wz.Type} AND TrN_GIDNumer={wz.Id})";
-                    string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.WZFolder, wz.FileName);
-
-                    _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
-
-                    if (!File.Exists(pdfPath))
+                    catch (Exception ex)
                     {
-                        _logger.LogError("Failed to generate PDF for document: {Document}. Expected file not found at path: {PdfPath}", wz.Name, pdfPath);
-                        continue;
+                        _logger.LogError(ex, "Error processing WZ document: {Document}.", wz.Name);
                     }
-
-                    _logger.LogInformation("Generated PDF for document: {Document} at path: {PdfPath}", wz.Name, pdfPath);
-
-                    var clientEmail = wz.Email?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(e => e.Trim())
-                        .FirstOrDefault();
-
-                    if (string.IsNullOrWhiteSpace(clientEmail))
-                    {
-                        _logger.LogError("WZ {Document} has no valid client email.", wz.Name);
-                        continue;
-                    }
-
-                    if (!clientInvoices.ContainsKey(clientEmail))
-                        clientInvoices[clientEmail] = new List<(WZDocument, string)>();
-
-                    clientInvoices[clientEmail].Add((wz, pdfPath));
                 }
 
                 // Send grouped emails

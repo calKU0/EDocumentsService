@@ -45,49 +45,56 @@ namespace EInvoice.Service.Services
 
                 foreach (var invoice in invoices.DistinctBy(i => i.Name))
                 {
-                    if (ct.IsCancellationRequested)
+                    try
                     {
-                        _logger.LogInformation("Cancellation requested. Stopping e-invoice generation.");
-                        break;
-                    }
+                        if (ct.IsCancellationRequested)
+                        {
+                            _logger.LogInformation("Cancellation requested. Stopping e-invoice generation.");
+                            break;
+                        }
 
-                    var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == invoice.Country && s.Stapled == (invoice.Country == "PL" ? invoice.IsStapled : false));
-                    if (printSettings == null)
-                    {
-                        printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == "EN");
+                        var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == invoice.Country && s.Stapled == (invoice.Country == "PL" ? invoice.IsStapled : false));
                         if (printSettings == null)
                         {
-                            throw new Exception($"No print settings found for DocumentType={invoice.Type} and Language={invoice.Country} or fallback 'EN'.");
+                            printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == invoice.Type && s.Language == "EN");
+                            if (printSettings == null)
+                            {
+                                throw new Exception($"No print settings found for DocumentType={invoice.Type} and Language={invoice.Country} or fallback 'EN'.");
+                            }
                         }
+
+                        var filtrSql = $"(TrN_GIDTyp={invoice.Type} AND TrN_GIDNumer={invoice.Id})";
+                        string pdfPath = Path.Combine(_appSettings.InvoicesPath, invoice.FileName);
+
+                        _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
+
+                        if (!File.Exists(pdfPath))
+                        {
+                            _logger.LogError("Failed to generate PDF for document: {Document}. Expected file not found at path: {PdfPath}", invoice.Name, pdfPath);
+                            continue;
+                        }
+
+                        _logger.LogInformation("Generated PDF for document: {Document} at path: {PdfPath}", invoice.Name, pdfPath);
+
+                        var clientEmail = invoice.Email?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(e => e.Trim())
+                            .FirstOrDefault();
+
+                        if (string.IsNullOrWhiteSpace(clientEmail))
+                        {
+                            _logger.LogError("Invoice {Document} has no valid client email.", invoice.Name);
+                            continue;
+                        }
+
+                        if (!clientInvoices.ContainsKey(clientEmail))
+                            clientInvoices[clientEmail] = new List<(Invoice, string)>();
+
+                        clientInvoices[clientEmail].Add((invoice, pdfPath));
                     }
-
-                    var filtrSql = $"(TrN_GIDTyp={invoice.Type} AND TrN_GIDNumer={invoice.Id})";
-                    string pdfPath = Path.Combine(_appSettings.InvoicesPath, invoice.FileName);
-
-                    _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
-
-                    if (!File.Exists(pdfPath))
+                    catch (Exception ex)
                     {
-                        _logger.LogError("Failed to generate PDF for document: {Document}. Expected file not found at path: {PdfPath}", invoice.Name, pdfPath);
-                        continue;
+                        _logger.LogError(ex, "Error processing Invoice document: {Document}.", invoice.Name);
                     }
-
-                    _logger.LogInformation("Generated PDF for document: {Document} at path: {PdfPath}", invoice.Name, pdfPath);
-
-                    var clientEmail = invoice.Email?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(e => e.Trim())
-                        .FirstOrDefault();
-
-                    if (string.IsNullOrWhiteSpace(clientEmail))
-                    {
-                        _logger.LogError("Invoice {Document} has no valid client email.", invoice.Name);
-                        continue;
-                    }
-
-                    if (!clientInvoices.ContainsKey(clientEmail))
-                        clientInvoices[clientEmail] = new List<(Invoice, string)>();
-
-                    clientInvoices[clientEmail].Add((invoice, pdfPath));
                 }
 
                 // Send grouped emails
@@ -109,7 +116,7 @@ namespace EInvoice.Service.Services
                     {
                         _emailService.Send(body, subject, to, attachments);
                         _logger.LogInformation("Successfully generated and sent e-invoice(s) for client: {ClientEmail} with {Count} attachments.", clientEmail, attachments.Count);
-                        
+
                         try
                         {
                             foreach (var inv in invoiceGroup)

@@ -37,58 +37,65 @@ namespace EExportDeclaration.Service.Services
 
                 foreach (var declaration in declarations)
                 {
-                    if (ct.IsCancellationRequested)
-                    {
-                        _logger.LogInformation("Cancellation requested. Stopping e-export declaration generation.");
-                        break;
-                    }
-
-                    var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == declaration.ClientType && s.Language == declaration.ClientCountry);
-                    if (printSettings == null)
-                    {
-                        printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == declaration.ClientType && s.Language == "EN");
-                        if (printSettings == null)
-                        {
-                            throw new Exception($"No print settings found for DocumentType={declaration.ClientType} and Language={declaration.ClientCountry} or fallback 'EN'.");
-                        }
-                    }
-
-                    var filtrSql = $"(Knt_GIDTyp={declaration.ClientType} AND Knt_GIDFirma=449892 AND Knt_GIDNumer={declaration.ClientId})";
-                    string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder, declaration.FileName);
-
-                    _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
-
-                    if (!File.Exists(pdfPath))
-                    {
-                        _logger.LogError("Failed to generate PDF for export declaration for client: {Client}. Expected file not found at path: {PdfPath}", declaration.ClientName, pdfPath);
-                        continue;
-                    }
-                    _logger.LogInformation("Generated PDF at path: {PdfPath}", pdfPath);
-
-                    List<string> to = declaration.Email.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(e => e.Trim())
-                        .Where(e => !string.IsNullOrWhiteSpace(e))
-                        .ToList();
-
-                    string body = ExportDeclarationEmailBuilder.BuildExportDeclarationBody(declaration.ClientCountry);
-                    string subject = declaration.ClientCountry == "PL"
-                        ? "Potwierdzenie dostawy towaru z terytorium Polski"
-                        : "Confirmation of delivery the goods from the territory of Poland";
-
-                    var attachments = new List<string> { pdfPath };
                     try
                     {
-                        _emailService.Send(body, subject, to, attachments);
-                        _logger.LogInformation("Successfully generated and sent e-export declarations for client: {ClientEmail} with {Count} attachments.", declaration.Email, attachments.Count);
-                    }
-                    catch (SmtpException smtpEx) when (smtpEx.Message.Contains("Osiagnieto limit"))
-                    {
-                        DateTime now = DateTime.Now;
-                        var delay = TimeSpan.FromHours(1) - TimeSpan.FromMinutes(now.Minute) - TimeSpan.FromSeconds(now.Second);
-                        Log.Warning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
+                        if (ct.IsCancellationRequested)
+                        {
+                            _logger.LogInformation("Cancellation requested. Stopping e-export declaration generation.");
+                            break;
+                        }
 
-                        await Task.Delay(delay + TimeSpan.FromMinutes(5));
-                        _emailService.Send(body, subject, to, attachments);
+                        var printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == declaration.ClientType && s.Language == declaration.ClientCountry);
+                        if (printSettings == null)
+                        {
+                            printSettings = _xlPrintSettings.FirstOrDefault(s => s.DocumentType == declaration.ClientType && s.Language == "EN");
+                            if (printSettings == null)
+                            {
+                                throw new Exception($"No print settings found for DocumentType={declaration.ClientType} and Language={declaration.ClientCountry} or fallback 'EN'.");
+                            }
+                        }
+
+                        var filtrSql = $"(Knt_GIDTyp={declaration.ClientType} AND Knt_GIDFirma=449892 AND Knt_GIDNumer={declaration.ClientId})";
+                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder, declaration.FileName);
+
+                        _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
+
+                        if (!File.Exists(pdfPath))
+                        {
+                            _logger.LogError("Failed to generate PDF for export declaration for client: {Client}. Expected file not found at path: {PdfPath}", declaration.ClientName, pdfPath);
+                            continue;
+                        }
+                        _logger.LogInformation("Generated PDF at path: {PdfPath}", pdfPath);
+
+                        List<string> to = declaration.Email.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(e => e.Trim())
+                            .Where(e => !string.IsNullOrWhiteSpace(e))
+                            .ToList();
+
+                        string body = ExportDeclarationEmailBuilder.BuildExportDeclarationBody(declaration.ClientCountry);
+                        string subject = declaration.ClientCountry == "PL"
+                            ? "Potwierdzenie dostawy towaru z terytorium Polski"
+                            : "Confirmation of delivery the goods from the territory of Poland";
+
+                        var attachments = new List<string> { pdfPath };
+                        try
+                        {
+                            _emailService.Send(body, subject, to, attachments);
+                            _logger.LogInformation("Successfully generated and sent e-export declarations for client: {ClientEmail} with {Count} attachments.", declaration.Email, attachments.Count);
+                        }
+                        catch (SmtpException smtpEx) when (smtpEx.Message.Contains("Osiagnieto limit"))
+                        {
+                            DateTime now = DateTime.Now;
+                            var delay = TimeSpan.FromHours(1) - TimeSpan.FromMinutes(now.Minute) - TimeSpan.FromSeconds(now.Second);
+                            Log.Warning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
+
+                            await Task.Delay(delay + TimeSpan.FromMinutes(5));
+                            _emailService.Send(body, subject, to, attachments);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing Export declaration document for client: {Client}.", declaration.ClientName);
                     }
                 }
             }
