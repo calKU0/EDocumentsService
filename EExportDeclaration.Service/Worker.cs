@@ -66,7 +66,7 @@ namespace EExportDeclaration.Service
 
                     await printingService.GenerateAndSendExportDeclarations(stoppingToken);
 
-                    string declarationsPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder);
+                    string declarationsPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportFolder);
                     fileService.DeleteFilesFromFolder(declarationsPath, ".pdf");
                     _logger.LogInformation("Files deleted from {Path}", declarationsPath);
 

@@ -6,7 +6,6 @@ using EDocuments.Infrastructure.Helpers;
 using EWZ.Service.Constants;
 using EWZ.Service.Helpers;
 using Microsoft.Extensions.Options;
-using Serilog;
 using System.Net.Mail;
 
 namespace EWZ.Service.Services
@@ -62,7 +61,7 @@ namespace EWZ.Service.Services
                         }
 
                         var filtrSql = $"(TrN_GIDTyp={wz.Type} AND TrN_GIDNumer={wz.Id})";
-                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.WZFolder, wz.FileName);
+                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportFolder, wz.FileName);
 
                         _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
 
@@ -132,7 +131,7 @@ namespace EWZ.Service.Services
                     {
                         DateTime now = DateTime.Now;
                         var delay = TimeSpan.FromHours(1) - TimeSpan.FromMinutes(now.Minute) - TimeSpan.FromSeconds(now.Second);
-                        Log.Warning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
+                        _logger.LogWarning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
 
                         await Task.Delay(delay + TimeSpan.FromMinutes(5));
                         _emailService.Send(body, subject, to, attachments);

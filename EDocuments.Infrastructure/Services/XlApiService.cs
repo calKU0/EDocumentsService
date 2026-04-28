@@ -66,6 +66,8 @@ namespace EDocuments.Infrastructure.Services
                 PlikDocelowy = path
             };
 
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
             var result = cdn_api.cdn_api.XLWykonajPodanyWydruk(xlPrint);
             if (result != 0)
                 throw new Exception(CheckXlError(87, result));

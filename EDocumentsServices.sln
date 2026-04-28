@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EExportDeclaration.Service"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EWZ.Service", "EWZ.Service\EWZ.Service.csproj", "{5696B235-DEE1-4FF2-B388-92142AECA3B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EReturns.Service", "EReturns.Service\EReturns.Service.csproj", "{FD421EA8-EBA7-42E7-A9A4-D6B30027BFDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5696B235-DEE1-4FF2-B388-92142AECA3B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD421EA8-EBA7-42E7-A9A4-D6B30027BFDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD421EA8-EBA7-42E7-A9A4-D6B30027BFDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD421EA8-EBA7-42E7-A9A4-D6B30027BFDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD421EA8-EBA7-42E7-A9A4-D6B30027BFDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

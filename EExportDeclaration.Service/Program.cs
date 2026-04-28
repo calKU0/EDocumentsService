@@ -2,11 +2,11 @@ using EDocuments.Contracts.Repositories;
 using EDocuments.Contracts.Services;
 using EDocuments.Contracts.Settings;
 using EDocuments.Infrastructure.Data;
+using EDocuments.Infrastructure.Logging;
 using EDocuments.Infrastructure.Repositories;
 using EDocuments.Infrastructure.Services;
 using EExportDeclaration.Service;
 using EExportDeclaration.Service.Constants;
-using EExportDeclaration.Service.Logging;
 using EExportDeclaration.Service.Services;
 using EExportDeclaration.Service.Settings;
 using Serilog;
@@ -18,7 +18,7 @@ var host = Host.CreateDefaultBuilder(args)
     })
     .UseSerilog((hostContext, _, loggerConfiguration) =>
     {
-        loggerConfiguration.ConfigureServiceLogging(hostContext.Configuration);
+        loggerConfiguration.ConfigureServiceLogging(hostContext.Configuration, ServiceConstants.ServiceName);
     })
     .ConfigureServices((hostContext, services) =>
     {

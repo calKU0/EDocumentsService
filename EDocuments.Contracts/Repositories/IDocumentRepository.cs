@@ -7,5 +7,6 @@ namespace EDocuments.Contracts.Repositories
         public Task<List<Invoice>> GetInvoices();
         public Task<List<ExportDeclaration>> GetExportDeclarations();
         public Task<List<WZDocument>> GetWZDocuments();
+        public Task<List<Return>> GetReturns();
     }
 }

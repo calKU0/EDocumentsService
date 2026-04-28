@@ -3,6 +3,6 @@
     public class ServiceConstants
     {
         public const string ServiceName = "EDeklaracjeEksportowe";
-        public const string ExportDeclarationFolder = "ExportDeclarations";
+        public const string ExportFolder = "DeklaracjeEksportowe";
     }
 }

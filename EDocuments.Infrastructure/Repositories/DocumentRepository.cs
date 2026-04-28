@@ -36,6 +36,17 @@ namespace EDocuments.Infrastructure.Repositories
             }
         }
 
+        public async Task<List<Return>> GetReturns()
+        {
+            const string procedure = "dbo.GaskaGetEReturns";
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var returns = await connection.QueryAsync<Return>(procedure, commandType: CommandType.StoredProcedure);
+                return returns.ToList();
+            }
+        }
+
         public async Task<List<WZDocument>> GetWZDocuments()
         {
             const string procedure = "dbo.GaskaGetEWZ";

@@ -66,7 +66,7 @@ namespace EWZ.Service
 
                     await printingService.GenerateAndSendEWZs(stoppingToken);
 
-                    string wzPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.WZFolder);
+                    string wzPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportFolder);
                     fileService.DeleteFilesFromFolder(wzPath, ".pdf");
                     _logger.LogInformation("Files deleted from {Path}", wzPath);
 
@@ -108,6 +108,5 @@ namespace EWZ.Service
 
             await base.StopAsync(cancellationToken);
         }
-
     }
 }

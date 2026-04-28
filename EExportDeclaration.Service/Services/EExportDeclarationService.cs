@@ -4,7 +4,6 @@ using EDocuments.Contracts.Settings;
 using EExportDeclaration.Service.Constants;
 using EExportDeclaration.Service.Helpers;
 using Microsoft.Extensions.Options;
-using Serilog;
 using System.Net.Mail;
 
 namespace EExportDeclaration.Service.Services
@@ -56,7 +55,7 @@ namespace EExportDeclaration.Service.Services
                         }
 
                         var filtrSql = $"(Knt_GIDTyp={declaration.ClientType} AND Knt_GIDFirma=449892 AND Knt_GIDNumer={declaration.ClientId})";
-                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportDeclarationFolder, declaration.FileName);
+                        string pdfPath = Path.Combine(AppContext.BaseDirectory, ServiceConstants.ExportFolder, declaration.FileName);
 
                         _xlApiService.GeneratePrint(printSettings, pdfPath, filtrSql);
 
@@ -87,7 +86,7 @@ namespace EExportDeclaration.Service.Services
                         {
                             DateTime now = DateTime.Now;
                             var delay = TimeSpan.FromHours(1) - TimeSpan.FromMinutes(now.Minute) - TimeSpan.FromSeconds(now.Second);
-                            Log.Warning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
+                            _logger.LogWarning($"Email sending limit reached. Waiting for next hour ({now.Add(delay):HH:mm}) before sending more.");
 
                             await Task.Delay(delay + TimeSpan.FromMinutes(5));
                             _emailService.Send(body, subject, to, attachments);
